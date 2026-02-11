@@ -45,13 +45,22 @@ defmodule TwMerge.Class do
     if next = Map.get(map["next"], part) do
       group_recursive(rest, next)
     else
-      if Enum.any?(map["validators"]) do
+      # FIX: Use Map.get/3 with a default empty list to avoid Enum.any?(nil)
+      validators = Map.get(map, "validators", [])
+
+      if Enum.any?(validators) do
         path = Enum.join(path, "-")
 
-        case Enum.find(sort_validators(map["validators"]), fn {_key, %{"function" => validator}} -> validator.(path) end) do
+        case Enum.find(sort_validators(validators), fn {_key, %{"function" => validator}} ->
+               validator.(path)
+             end) do
           nil -> nil
           {_key, %{"group" => group}} -> group
         end
+      else
+        # If no next node and no validators, it's not a known Tailwind group.
+        # Returning nil here causes parse/1 to treat it as a custom class.
+        nil
       end
     end
   end
